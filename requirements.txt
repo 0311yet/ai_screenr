@@ -1,0 +1,7 @@
+# ai_screenr 运行依赖（已实测通过版本）
+PySide6==6.11.1
+psutil==7.2.2
+pywin32==312
+mss==10.2.0
+Pillow==12.3.0
+requests==2.34.2
