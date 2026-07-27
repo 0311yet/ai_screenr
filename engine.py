@@ -104,10 +104,16 @@ class MonitorEngine:
             win = self.latest_win
             if win is None:
                 continue
-            # 锁屏/屏灭 -> 空闲，不调 VLM
+            # 锁屏/屏灭 或 键鼠静止超过阈值 -> 空闲，不调 VLM
             if win.locked or win.screen_off:
                 ev = self._make_event(win, activity="空闲", app="系统",
                                       detail="锁屏", source="system", skipped=False)
+                self._write_event(ev)
+                continue
+            if win.idle_sec and win.idle_sec >= config.IDLE_THRESHOLD_SEC:
+                ev = self._make_event(win, activity="空闲", app=win.proc_name or "系统",
+                                      detail=f"键鼠静止 {int(win.idle_sec)}s",
+                                      source="system", skipped=False)
                 self._write_event(ev)
                 continue
             # 跳过策略：上一帧仍在推理 -> skip
