@@ -20,11 +20,12 @@ from collections import Counter
 
 from nicegui import ui, app
 from fastapi import Query
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, PlainTextResponse
 
 import config
 from storage import db
 from engine import get_engine, EngineCallbacks
+from report import daily
 from ui import theme
 
 
@@ -157,6 +158,8 @@ def main_page():
                 eng.pause()
                 pause_btn.text = "恢复"
 
+        ui.button(icon="description", on_click=lambda: None
+                  ).props("flat dense unelevated").classes("act-btn report-btn")
         ui.button(icon="settings", on_click=lambda: ui.navigate.to("/settings")
                   ).props("flat dense unelevated").classes("act-btn")
 
@@ -346,6 +349,8 @@ def main_page():
 
     from ui import _seg_detail
     _seg_detail.inject()
+    from ui import _report_modal
+    _report_modal.inject()
 
     ui.timer(5.0, refresh)
     refresh()
@@ -413,3 +418,34 @@ async def _segment_info(idx: int = Query(..., ge=0, lt=144)):
         "skip_count": seg["skip_count"],
         "fallback_count": seg["fallback_count"],
     })
+
+
+# ── 日报端点 ───────────────────
+@app.post("/generate_report")
+async def _generate_report(date: str = Query(None)):
+    """生成指定日期（默认今天）的日报，返回 md 文本。"""
+    import os
+    d = date or datetime.date.today().isoformat()
+    try:
+        out_path = daily.generate(d)
+        with open(out_path, encoding="utf-8") as f:
+            md = f.read()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
+    return JSONResponse({"ok": True, "date": d, "md": md})
+
+
+@app.get("/report_file")
+async def _report_file(date: str = Query(...)):
+    """下载指定日期的 .md 日报。"""
+    import os
+    out_path = os.path.join(config.REPORT_DIR, f"{date}.md")
+    if not os.path.exists(out_path):
+        daily.generate(date)  # 现场生成
+    with open(out_path, encoding="utf-8") as f:
+        md = f.read()
+    from starlette.responses import Response
+    return Response(
+        md, media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="ai_screenr_{date}.md"'},
+    )

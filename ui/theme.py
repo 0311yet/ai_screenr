@@ -243,6 +243,47 @@ html,body {{
 .seg-detail-swatch {{ display:inline-block; width:8px; height:8px; border-radius:2px; flex-shrink:0; }}
 .seg-detail-empty {{ padding:4px 0; opacity:0.5; }}
 .seg-detail-stats {{ margin-top:12px; }}
+/* 日报 modal */
+.report-modal {{ position:fixed; inset:0; z-index:100; display:flex; align-items:center;
+  justify-content:center; }}
+.report-modal-backdrop {{ position:absolute; inset:0; background:rgba(2,6,23,0.65);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }}
+.report-modal-card {{ position:relative; width:min(680px,92vw); max-height:84vh; display:flex;
+  flex-direction:column; background:rgba(13,21,40,0.96);
+  -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+  border:1px solid rgba(138,235,255,0.22); border-top:1px solid rgba(138,235,255,0.4);
+  border-radius:var(--radius-lg); box-shadow:0 16px 48px rgba(0,0,0,0.55),
+  0 0 32px rgba(34,211,238,0.08); }}
+.report-modal-head {{ display:flex; align-items:flex-start; justify-content:space-between;
+  gap:12px; padding:18px 20px 12px; border-bottom:1px solid rgba(255,255,255,0.06); }}
+.report-modal-title {{ font-family:'Geist'; font-weight:700; font-size:20px; color:{PRIMARY};
+  display:flex; align-items:center; gap:8px; }}
+.report-modal-title .material-symbols-outlined {{ font-size:24px; }}
+.report-modal-sub {{ margin-top:3px; }}
+.report-modal-actions {{ display:flex; align-items:center; gap:8px; }}
+.report-date-select {{ background:rgba(255,255,255,0.05); border:1px solid {OUTLINE_VARIANT};
+  color:{ON_SURFACE}; font-family:'JetBrains Mono'; font-size:12px; padding:5px 8px;
+  border-radius:var(--radius); outline:none; cursor:pointer; }}
+.report-date-select option {{ background:#0d1528; }}
+.report-dl-btn {{ display:flex; align-items:center; justify-content:center; width:30px; height:30px;
+  color:{ON_SURFACE_VARIANT}; border-radius:var(--radius); text-decoration:none;
+  transition:color .2s, background .2s; }}
+.report-dl-btn:hover {{ color:{PRIMARY}; background:rgba(138,235,255,0.1); }}
+.report-dl-btn .material-symbols-outlined {{ font-size:20px; }}
+.report-modal-close {{ width:30px; height:30px; background:transparent; border:none;
+  color:{ON_SURFACE_VARIANT}; font-size:22px; cursor:pointer; border-radius:var(--radius);
+  transition:color .2s, background .2s; }}
+.report-modal-close:hover {{ color:{PRIMARY}; background:rgba(138,235,255,0.1); }}
+.report-body {{ padding:16px 22px 22px; overflow-y:auto; font-family:'Geist'; color:{ON_SURFACE}; }}
+.rp-h1 {{ font-size:18px; font-weight:700; margin:4px 0 12px; color:{PRIMARY}; }}
+.rp-h2 {{ font-family:'JetBrains Mono'; font-size:12px; letter-spacing:0.06em;
+  text-transform:uppercase; color:{ON_SURFACE_VARIANT}; margin:14px 0 6px; }}
+.rp-li {{ font-family:'JetBrains Mono'; font-size:13px; padding:3px 0; line-height:1.5;
+  border-left:2px solid rgba(138,235,255,0.15); padding-left:10px; margin:2px 0; }}
+.rp-li b {{ color:{PRIMARY}; font-weight:600; }}
+.rp-p {{ font-family:'JetBrains Mono'; font-size:13px; color:{ON_SURFACE_VARIANT};
+  padding:6px 0 2px; }}
+.rp-p b {{ color:{ON_SURFACE}; }}
 /* toggle 开关 */
 .switch {{ position:relative; display:inline-block; width:48px; height:26px; vertical-align:middle; }}
 .switch input {{ opacity:0; width:0; height:0; }}

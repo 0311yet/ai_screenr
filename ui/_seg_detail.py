@@ -62,24 +62,28 @@ def inject():
       }
       document.addEventListener("click", function(e){
         var seg = e.target.closest(".seg");
-        if(!seg) return;
-        var idx = seg.getAttribute("data-idx");
-        if(idx === null) return;
-        var el = document.getElementById("seg-detail");
-        el.style.display = "block";
-        document.querySelectorAll(".seg.active").forEach(function(s){s.classList.remove("active");});
-        seg.classList.add("active");
-        document.getElementById("seg-detail-main").textContent = "加载中...";
-        fetch("/segment_info?idx=" + idx)
-          .then(function(r){return r.json();})
-          .then(_renderDetail)
-          .catch(function(){
-            document.getElementById("seg-detail-main").textContent = "加载失败";
-          });
-      });
-      document.querySelector(".seg-detail-close").addEventListener("click", function(){
-        document.getElementById("seg-detail").style.display = "none";
-        document.querySelectorAll(".seg.active").forEach(function(s){s.classList.remove("active");});
+        if(seg){
+          var idx = seg.getAttribute("data-idx");
+          if(idx !== null){
+            var el = document.getElementById("seg-detail");
+            el.style.display = "block";
+            document.querySelectorAll(".seg.active").forEach(function(s){s.classList.remove("active");});
+            seg.classList.add("active");
+            document.getElementById("seg-detail-main").textContent = "加载中...";
+            fetch("/segment_info?idx=" + idx)
+              .then(function(r){return r.json();})
+              .then(_renderDetail)
+              .catch(function(){
+                document.getElementById("seg-detail-main").textContent = "加载失败";
+              });
+          }
+          return;
+        }
+        // 关闭按钮也走委托（drawer DOM 由 NiceGUI 异步注入，脚本运行时可能还不存在）
+        if(e.target.closest(".seg-detail-close")){
+          document.getElementById("seg-detail").style.display = "none";
+          document.querySelectorAll(".seg.active").forEach(function(s){s.classList.remove("active");});
+        }
       });
     })();
     </script>
