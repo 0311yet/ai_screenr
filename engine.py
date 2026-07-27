@@ -19,7 +19,6 @@ from capture import windows, screen
 from classify import merge
 from storage import db
 from aggregator import segment as seg_mod
-from ollama_runner import ensure_ollama_running
 
 log = logging.getLogger(__name__)
 
@@ -211,7 +210,6 @@ def get_engine(cb: EngineCallbacks | None = None) -> MonitorEngine:
         with _engine_lock:
             if _engine is None:
                 init_storage()
-                ensure_ollama_running()   # 启动期同步拉起 Ollama + 校验模型
                 _engine = MonitorEngine(cb or EngineCallbacks())
                 _engine.start()
     return _engine

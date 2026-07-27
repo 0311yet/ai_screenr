@@ -150,7 +150,14 @@ def run() -> None:
     t = threading.Thread(target=_tray_loop, args=(tray_stop,), name="tray", daemon=True)
     t.start()
 
-    # 3) webview 原生窗口（主线程，阻塞）
+    # 3) 拉起 Ollama（同步等就绪，开窗口前完成）
+    from ollama_runner import ensure_ollama_running
+    try:
+        ensure_ollama_running()
+    except Exception:
+        log.exception("启动期拉起 Ollama 失败")
+
+    # 4) webview 原生窗口（主线程，阻塞）
     _open_window()
     # webview.start 退出 -> 下来贴托盘退出事件
     _stop_event.set()
