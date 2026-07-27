@@ -18,6 +18,7 @@ OLLAMA_HOST = "http://127.0.0.1:11434"
 OLLAMA_MODEL = "minicpm-v4.6:latest"
 OLLAMA_SERVE_BIN = "ollama"        # 自启动 ollama serve 所用的可执行名
 OLLAMA_HEALTH_TIMEOUT_SEC = 5
+OLLAMA_CHECK_INTERVAL_SEC = 60       # engine 每多久探一次 Ollama 是否在跑（仅在使用电脑时）
 VLM_SCREEN_MAX_W = 1920            # 截图直送 1080P（3050 4G 跑 1.3B Q4 宽裕，不缩图保信息）
 VLM_SCREEN_JPEG_Q = 85             # 送模前 JPEG 质量
 

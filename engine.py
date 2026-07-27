@@ -19,6 +19,7 @@ from capture import windows, screen
 from classify import merge
 from storage import db
 from aggregator import segment as seg_mod
+from ollama_runner import spawn_serve_if_down
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class MonitorEngine:
         self._stop = threading.Event()
         self._pause = threading.Event()
         self._vlm_running = threading.Lock()  # 互斥，跳过策略
+        self._ollama_last_check = 0.0          # Ollama 周期检测冷却时间戳
 
     def start(self) -> None:
         self._stop.clear()
@@ -116,6 +118,14 @@ class MonitorEngine:
                                       source="system", skipped=False)
                 self._write_event(ev)
                 continue
+            # 使用电脑中（非空闲非锁屏）：周期确保 Ollama 在跑，冷勋 60s
+            now_ts = time.time()
+            if now_ts - self._ollama_last_check >= config.OLLAMA_CHECK_INTERVAL_SEC:
+                self._ollama_last_check = now_ts
+                try:
+                    spawn_serve_if_down()
+                except Exception:
+                    log.exception("spawn ollama")
             # 跳过策略：上一帧仍在推理 -> skip
             if not self._vlm_running.acquire(blocking=False):
                 ev = self._make_event(win, activity="—", app="", detail="",
