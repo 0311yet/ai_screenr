@@ -41,8 +41,9 @@ def _make_icon():
 def _nicegui_server():
     """在子线程跑 NiceGUI 服务（阻塞）。"""
     from nicegui import ui as ngui
-    # 触发 @ui.page 注册
+    # 触发 @ui.page 注册（主页 + 设置页）
     __import__("ui.app", fromlist=["main_page"])
+    __import__("ui.settings_page", fromlist=["settings_page"])
     host, port = _cfg()
     try:
         ngui.run(host=host, port=port, reload=False, show=False,

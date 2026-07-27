@@ -190,3 +190,20 @@ class MonitorEngine:
 
 def init_storage() -> None:
     db.init_db()
+
+
+# ── 模块级单例（避免多页面各起一个 engine 导致双调 VLM）─
+_engine: MonitorEngine | None = None
+_engine_lock = threading.Lock()
+
+
+def get_engine(cb: EngineCallbacks | None = None) -> MonitorEngine:
+    """返回单例 engine。首次调用会初始化。传 cb 也只在首次生效。"""
+    global _engine
+    if _engine is None:
+        with _engine_lock:
+            if _engine is None:
+                init_storage()
+                _engine = MonitorEngine(cb or EngineCallbacks())
+                _engine.start()
+    return _engine
