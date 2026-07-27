@@ -72,14 +72,18 @@ _CSS = f"""
 }}
 * {{ box-sizing:border-box; }}
 html,body {{
-  background:{CANVAS}; color:{ON_SURFACE}; margin:0; min-height:100vh;
+  background:{CANVAS}; color:{ON_SURFACE}; margin:0; min-height:100vh; width:100%;
   font-family:'Geist','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
 }}
-/* NiceGUI 默认背景覆盖 */
-.q-page-container, .q-layout, .q-page, .nicegui-content {{
+/* 清掉 NiceGUI / Quasar 默认布局偏干由自己的 CSS 主导 */
+.nicegui-content, .q-page, .q-layout, .q-page-container {{
   background:transparent !important; color:{ON_SURFACE} !important;
+  padding:0 !important; display:block !important; width:100% !important;
+  max-width:none !important; min-height:100vh !important;
 }}
+/* glass 卡与顶栏宽度展开 */
+.glass, .topbar {{ width:100%; }}
 .mono {{ font-family:'JetBrains Mono','Cascadia Code',monospace; }}
 /* Glass 面板：半透明 + 模糊 + 顶部青色高光 */
 .glass {{
@@ -136,7 +140,7 @@ html,body {{
 .timeline-wrap {{ display:flex; align-items:flex-end; gap:2px; height:96px;
   background:rgba(23,31,51,0.5); padding:6px; border-radius:var(--radius); }}
 .seg {{ flex:1 1 0; min-width:0; border-radius:3px;
-  transition:transform .15s, filter .15s; cursor:pointer; height:30%; }}
+  transition:transform .15s, filter .15s; cursor:pointer; }}
 .seg:hover {{ transform:scaleY(1.4); filter:brightness(1.2); }}
 .seg-empty {{ height:10%; background:{SURFACE_CONTAINER_HIGHEST}; }}
 .timeline-axis {{ display:flex; justify-content:space-between; margin-top:6px;

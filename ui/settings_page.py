@@ -19,16 +19,15 @@ def settings_page():
     # 顶栏：与主页一致，标题 + 返回主页按钮
     with ui.element("div").classes("topbar"):
         ui.html(
-            '<span class="brand"><span class="brand-mark">π</span>AI SCREENR</span>'
-        )
-        ui.html('<span class="caps" style="margin-right:10px">SETTINGS</span>')
+            '<span class="brand"><span class="brand-mark">π</span>AI SCREENR</span>', sanitize=False)
+        ui.html('<span class="caps" style="margin-right:10px">SETTINGS</span>', sanitize=False)
         ui.button(
             icon="arrow_back", on_click=lambda: ui.navigate.to("/")
         ).props("flat dense unelevated").classes("act-btn")
 
     # ── 背景装饰光晕 ──
-    ui.html('<div class="glow-blob bg-glow-tl"></div>')
-    ui.html('<div class="glow-blob bg-glow-br"></div>')
+    ui.html('<div class="glow-blob bg-glow-tl"></div>', sanitize=False)
+    ui.html('<div class="glow-blob bg-glow-br"></div>', sanitize=False)
 
     # ── 主卡片 ──
     with ui.element("div").style(
@@ -43,9 +42,8 @@ def settings_page():
             ):
                 ui.html(
                     '<span class="material-symbols-outlined" '
-                    'style="color:var(--primary);font-size:28px">tune</span>'
-                )
-                ui.html('<div class="h1">设置</div>')
+                    'style="color:var(--primary);font-size:28px">tune</span>', sanitize=False)
+                ui.html('<div class="h1">设置</div>', sanitize=False)
 
             # 开机自启
             with ui.element("div").style(
@@ -60,23 +58,19 @@ def settings_page():
                         ui.html(
                             '<span class="material-symbols-outlined" '
                             'style="color:var(--on-surface-variant);font-size:16px">'
-                            'power_settings_new</span>'
-                        )
+                            'power_settings_new</span>', sanitize=False)
                         ui.html(
-                            '<div class="h3">开机自启动</div>'
-                        )
+                            '<div class="h3">开机自启动</div>', sanitize=False)
                     ui.html(
                         '<div class="data" style="color:var(--on-surface-variant)">'
                         '系统启动时自动运行 AI SCREENR，确保持续的监控与活动记录。'
-                        '</div>'
-                    )
+                        '</div>', sanitize=False)
                 # toggle
                 toggle = ui.html(
                     '<label class="switch"><input type="checkbox" '
                     f'{"checked" if autostart.is_enabled() else ""}>'
-                    '<span class="track"></span><span class="thumb"></span></label>'
-                )
-                hint = ui.html('<div class="caps" style="margin-top:10px"></div>')
+                    '<span class="track"></span><span class="thumb"></span></label>', sanitize=False)
+                hint = ui.html('<div class="caps" style="margin-top:10px"></div>', sanitize=False)
 
             # toggle change listener — ui.html 不允许 <script>，用 ui.add_body_html
             ui.add_body_html(

@@ -86,11 +86,13 @@ def _streak_minutes(events: list[dict], cur_act: str) -> int:
 def _seg_html(activity: str, intensity: int) -> str:
     """返回时间轴 144 段之一的 HTML。"""
     color = theme.ACT_COLOR.get(activity, theme.SURFACE_CONTAINER_HIGHEST)
-    h = max(10, intensity) if activity != "—" else 10
+    # 高度用 px（避免 flex container 里 height:% 失效）
+    pct = max(10, intensity) if activity != "—" else 10
+    h_px = int(round(96 * pct / 100))
     title = activity + " · " + str(intensity) + "%"
     return (
         '<div class="seg" title="' + title + '" '
-        'style="height:' + str(h) + '%;background:' + color + '">'
+        'style="height:' + str(h_px) + 'px;background:' + color + '">'
         '<div style="position:absolute;top:0;left:0;width:100%;height:2px;'
         'background:rgba(255,255,255,0.25);border-radius:2px 2px 0 0"></div>'
         '</div>'
@@ -136,12 +138,10 @@ def main_page():
     with ui.element("div").classes("topbar"):
         ui.html(
             f'<span class="brand">'
-            f'<span class="brand-mark">π</span>AI SCREENR</span>'
-        )
+            f'<span class="brand-mark">π</span>AI SCREENR</span>', sanitize=False)
         clock = ui.html(
             f'<span class="caps" style="margin-right:10px">'
-            f'<span class="live-dot"></span>RUNTIME · --:--:--</span>'
-        )
+            f'<span class="live-dot"></span>RUNTIME · --:--:--</span>', sanitize=False)
         pause_btn = ui.button("暂停", on_click=lambda: _toggle_pause()).props(
             "flat dense unelevated"
         ).classes("btn-ghost")
@@ -165,68 +165,60 @@ def main_page():
                 ui.html(
                     '<div><div class="h2">24H 实时时间轴</div>'
                     '<div class="caps" style="margin-top:4px">'
-                    '个柱 = 10 分钟段 · 高 = 活动强度</div></div>'
-                )
-                ui.html('<span class="chip">在线监听</span>')
-            timeline_html = ui.html('<div class="timeline-wrap"></div>')
+                    '个柱 = 10 分钟段 · 高 = 活动强度</div></div>', sanitize=False)
+                ui.html('<span class="chip">在线监听</span>', sanitize=False)
+            timeline_html = ui.html('<div class="timeline-wrap"></div>', sanitize=False)
             ui.html(
                 '<div class="timeline-axis">'
                 + "".join(f'<span>{h:02d}</span>' for h in [0, 4, 8, 12, 16, 20, 23])
-                + '</div>'
-            )
+                + '</div>', sanitize=False)
 
     # ── 中部三卡 ──
     with ui.element("div").classes("grid-12").style("padding:0 24px"):
         # 当前活动
         with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
-            ui.html('<div class="caps">当前活动</div>')
+            ui.html('<div class="caps">当前活动</div>', sanitize=False)
             orbit_html = ui.html('<div class="row" style="justify-content:center;margin:10px 0">'
                     '<div class="orbit"><div class="ring"></div>'
                     '<span class="material-symbols-outlined core" id="cur-icon">'
-                    f'{theme.ACT_ICON["—"]}</span></div></div>')
+                    f'{theme.ACT_ICON["—"]}</span></div></div>', sanitize=False)
             cur_title = ui.html(
-                '<div class="h3" style="text-align:center" id="cur-title">—</div>'
-            )
+                '<div class="h3" style="text-align:center" id="cur-title">—</div>', sanitize=False)
             cur_meta = ui.html(
                 '<div class="data" style="text-align:center;color:var(--on-surface-variant);'
-                'margin-top:4px" id="cur-meta">启动中</div>'
-            )
+                'margin-top:4px" id="cur-meta">启动中</div>', sanitize=False)
 
         # 活动构成
         with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
-            ui.html('<div class="caps">今日活动构成</div>')
+            ui.html('<div class="caps">今日活动构成</div>', sanitize=False)
             donut_html = ui.html(
                 '<div class="conic-donut">'
                 '<div class="hole"><div class="big" id="mix-big">0h 00m</div>'
-                '<div class="sub" id="mix-sub">总活跃</div></div></div>'
-            )
-            mix_list = ui.html('<div style="margin-top:10px" id="mix-list"></div>')
+                '<div class="sub" id="mix-sub">总活跃</div></div></div>', sanitize=False)
+            mix_list = ui.html('<div style="margin-top:10px" id="mix-list"></div>', sanitize=False)
 
         # 24h 强度柱图
         with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
-            ui.html('<div class="caps">24H 活动强度</div>')
-            bars_html = ui.html('<div class="bars"></div>')
+            ui.html('<div class="caps">24H 活动强度</div>', sanitize=False)
+            bars_html = ui.html('<div class="bars"></div>', sanitize=False)
             ui.html(
                 '<div class="timeline-axis" style="margin-top:6px">'
                 + "".join(f'<span>{h:02d}</span>' for h in [0, 4, 8, 12, 16, 20, 23])
-                + '</div>'
-            )
+                + '</div>', sanitize=False)
 
     # ── 活动日志 ──
     with ui.element("div").style("padding:0 24px 24px"):
         with ui.element("div").classes("glass"):
             with ui.element("div").classes("cols-x").style("margin-bottom:10px"):
-                ui.html('<div class="h3">活动日志</div>')
+                ui.html('<div class="h3">活动日志</div>', sanitize=False)
                 log_meta = ui.html(
                     '<div class="caps" id="log-meta">'
                     f'<span class="live-dot"></span>VLM · {state["vlm"]} 帧 · '
-                    f'跳过 {state["err"]}</div>'
-                )
+                    f'跳过 {state["err"]}</div>', sanitize=False)
             log_table = ui.html(
                 '<table class="log-table"><thead><tr>'
                 '<th>时间戳</th><th>事件</th><th>详情</th></tr></thead>'
-                '<tbody id="log-body"></tbody></table>'
-            )
+                '<tbody id="log-body"></tbody></table>', sanitize=False)
 
     # ── 刷新 ──
     def refresh():
