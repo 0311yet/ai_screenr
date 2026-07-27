@@ -42,36 +42,6 @@ def _ensure_serve_started() -> bool:
     return False
 
 
-def spawn_serve_if_down() -> bool:
-    """轻量入口：探测 Ollama 是否在跑；不在跑就 spawn（非阻塞，不等待健康）。
-    返回 True=已在跑或刚 spawn；False=spawn 失败。供 engine 周期轮询用，不阻塞采集。"""
-    if _is_healthy():
-        return True
-    try:
-        subprocess.Popen(
-            [config.OLLAMA_SERVE_BIN, "serve"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        log.info("Ollama 未在跑，已spawn（不阻塞等待）")
-        return True
-    except Exception as e:
-        log.warning("spawn ollama serve 失败：%s", e)
-        return False
-
-
-def is_model_ready() -> bool:
-    """Ollama 健康 且 目标模型已安装。供 engine 判断能否真正跑 VLM。"""
-    if not _is_healthy():
-        return False
-    try:
-        r = requests.get(f"{config.OLLAMA_HOST}/api/tags", timeout=config.OLLAMA_HEALTH_TIMEOUT_SEC)
-        names = [m.get("name", "") for m in r.json().get("models", [])]
-        return config.OLLAMA_MODEL in names
-    except Exception:
-        return False
-
-
 def ensure_ollama_running() -> bool:
     """启动期调用。返回 Ollama 健康 & 模型可用；False 时调用方应提示用户。"""
     if not _is_healthy():
