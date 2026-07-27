@@ -211,7 +211,7 @@ html,body {{
 .bg-glow-br {{ bottom:-10%; right:-10%; width:30vw; height:30vh;
   background:rgba(183,200,225,0.05); }}
 /* toggle 开关 */
-.switch {{ position:relative; width:48px; height:26px; }}
+.switch {{ position:relative; display:inline-block; width:48px; height:26px; vertical-align:middle; }}
 .switch input {{ opacity:0; width:0; height:0; }}
 .switch .track {{ position:absolute; inset:0; background:{SURFACE_CONTAINER_HIGH};
   border-radius:9999px; border:2px solid {OUTLINE_VARIANT}; transition:.25s; }}
