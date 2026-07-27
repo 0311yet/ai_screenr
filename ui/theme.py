@@ -142,6 +142,8 @@ html,body {{
 .seg {{ flex:1 1 0; min-width:0; border-radius:3px;
   transition:transform .15s, filter .15s; cursor:pointer; }}
 .seg:hover {{ transform:scaleY(1.4); filter:brightness(1.2); }}
+.seg.active {{ transform:scaleY(1.6); filter:brightness(1.4);
+  outline:1px solid {PRIMARY}; outline-offset:2px; }}
 .seg-empty {{ height:10%; background:{SURFACE_CONTAINER_HIGHEST}; }}
 .timeline-axis {{ display:flex; justify-content:space-between; margin-top:6px;
   font-family:'JetBrains Mono'; font-size:11px; color:{ON_SURFACE_VARIANT}; }}
@@ -210,6 +212,37 @@ html,body {{
   background:rgba(138,235,255,0.06); }}
 .bg-glow-br {{ bottom:-10%; right:-10%; width:30vw; height:30vh;
   background:rgba(183,200,225,0.05); }}
+/* 段详情 drawer */
+.seg-detail {{ position:fixed; top:88px; right:24px; width:340px;
+  background:rgba(15,23,42,0.92); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  border:1px solid rgba(138,235,255,0.25); border-top:1px solid rgba(138,235,255,0.4);
+  border-radius:var(--radius-lg); box-shadow:0 8px 32px rgba(0,0,0,0.5),
+  0 0 24px rgba(34,211,238,0.08); padding:20px 20px 16px; z-index:50;
+  font-family:'Geist'; }}
+.seg-detail-close {{ position:absolute; top:10px; right:10px; width:28px; height:28px;
+  background:transparent; border:none; color:{ON_SURFACE_VARIANT}; font-size:20px;
+  cursor:pointer; border-radius:var(--radius); transition:color .2s, background .2s; }}
+.seg-detail-close:hover {{ color:{PRIMARY}; background:rgba(138,235,255,0.1); }}
+.seg-detail-head {{ display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; }}
+.seg-detail-icon {{ font-size:36px; color:{PRIMARY}; }}
+.seg-detail-range {{ font-family:'JetBrains Mono'; font-size:11px; color:{ON_SURFACE_VARIANT};
+  letter-spacing:0.05em; margin-bottom:2px; }}
+.seg-detail-main {{ font-family:'Geist'; font-weight:700; font-size:22px; color:{PRIMARY};
+  line-height:1.1; }}
+.seg-detail-summary {{ font-family:'Geist'; font-size:13px; color:{ON_SURFACE};
+  line-height:1.5; background:rgba(34,211,238,0.06); border-left:2px solid {PRIMARY_DIM};
+  padding:8px 10px; border-radius:0 var(--radius) var(--radius) 0; margin-bottom:14px; }}
+.seg-detail-section-title {{ font-family:'JetBrains Mono'; font-size:11px; color:{ON_SURFACE_VARIANT};
+  letter-spacing:0.06em; text-transform:uppercase; margin:10px 0 6px; }}
+.seg-detail-list {{ display:flex; flex-direction:column; gap:2px; }}
+.seg-detail-row {{ display:flex; align-items:center; justify-content:space-between;
+  font-family:'JetBrains Mono'; font-size:13px; color:{ON_SURFACE}; padding:4px 0; }}
+.seg-detail-row span:first-child {{ display:flex; align-items:center; gap:8px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }}
+.seg-detail-row span:last-child {{ color:{ON_SURFACE_VARIANT}; flex-shrink:0; margin-left:8px; }}
+.seg-detail-swatch {{ display:inline-block; width:8px; height:8px; border-radius:2px; flex-shrink:0; }}
+.seg-detail-empty {{ padding:4px 0; opacity:0.5; }}
+.seg-detail-stats {{ margin-top:12px; }}
 /* toggle 开关 */
 .switch {{ position:relative; display:inline-block; width:48px; height:26px; vertical-align:middle; }}
 .switch input {{ opacity:0; width:0; height:0; }}

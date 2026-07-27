@@ -19,6 +19,8 @@ import time
 from collections import Counter
 
 from nicegui import ui, app
+from fastapi import Query
+from starlette.responses import JSONResponse
 
 import config
 from storage import db
@@ -83,7 +85,7 @@ def _streak_minutes(events: list[dict], cur_act: str) -> int:
 
 
 # ── 渲染 helper ───────────────────────────────
-def _seg_html(activity: str, intensity: int) -> str:
+def _seg_html(idx: int, activity: str, intensity: int) -> str:
     """返回时间轴 144 段之一的 HTML。"""
     color = theme.ACT_COLOR.get(activity, theme.SURFACE_CONTAINER_HIGHEST)
     # 高度用 px（避免 flex container 里 height:% 失效）
@@ -91,7 +93,7 @@ def _seg_html(activity: str, intensity: int) -> str:
     h_px = int(round(96 * pct / 100))
     title = activity + " · " + str(intensity) + "%"
     return (
-        '<div class="seg" title="' + title + '" '
+        '<div class="seg" data-idx="' + str(idx) + '" title="' + title + '" '
         'style="height:' + str(h_px) + 'px;background:' + color + '">'
         '<div style="position:absolute;top:0;left:0;width:100%;height:2px;'
         'background:rgba(255,255,255,0.25);border-radius:2px 2px 0 0"></div>'
@@ -248,8 +250,8 @@ def main_page():
                 intensity = int((1 - idle_sec / total_sec) * 100)
                 slots[idx] = (s["main_activity"], max(20, intensity))
         tls = "".join(
-            _seg_html(*s) if s is not None else _seg_html("—", 10)
-            for s in slots
+            _seg_html(i, *s) if s is not None else _seg_html(i, "—", 10)
+            for i, s in enumerate(slots)
         )
         timeline_html.set_content(f'<div class="timeline-wrap">{tls}</div>')
 
@@ -342,6 +344,9 @@ def main_page():
             f'跳过 {state["err"]}'
         )
 
+    from ui import _seg_detail
+    _seg_detail.inject()
+
     ui.timer(5.0, refresh)
     refresh()
 
@@ -355,3 +360,56 @@ def main_page():
 
     # 退出页面不 stop engine（单例随进程生命）
     app.on_disconnect(lambda: None)
+
+
+# ── 段详情 JSON 端点 ──────────────────────
+@app.get("/segment_info")
+async def _segment_info(idx: int = Query(..., ge=0, lt=144)):
+    """返回指定 144 段位置的详情 JSON。点 .seg 时调用。"""
+    import datetime as _dt
+    now = _dt.datetime.now()
+    today0 = _dt.datetime.combine(now.date(), _dt.time.min).timestamp()
+    since = today0 + idx * 600     # 10 分钟一段
+    until = since + 600
+    segs = db.fetch_segments_of_day(now.date().isoformat())
+    seg = None
+    for s in segs:
+        if s["since"] >= since and s["since"] < until:
+            seg = s
+            break
+    if seg is None:
+        return JSONResponse({
+            "empty": True, "idx": idx,
+            "since_str": _dt.datetime.fromtimestamp(since).strftime("%H:%M"),
+            "until_str": _dt.datetime.fromtimestamp(until).strftime("%H:%M"),
+        })
+    bd = json.loads(seg["breakdown"] or "{}")
+    top_apps_raw = json.loads(seg["top_apps"] or "{}")
+    def _to_min(sec):
+        m = float(sec) / 60.0
+        if m < 60:
+            return str(int(m)) + "分"
+        return str(int(m/60)) + "h" + str(int(m%60)).zfill(2) + "m"
+    breakdown = [{"activity": k, "sec": round(v, 1), "mins": _to_min(v),
+                  "color": theme.ACT_COLOR.get(k, "#666666")}
+                 for k, v in sorted(bd.items(), key=lambda x:-x[1]) if v > 0]
+    top_apps = [{"app": k, "sec": round(v, 1), "mins": _to_min(v)}
+                for k, v in sorted(top_apps_raw.items(), key=lambda x:-x[1]) if v > 0]
+    summary = seg["main_activity"]
+    if top_apps:
+        summary = ("这段主要在「" + top_apps[0]["app"] + "」里"
+                   + seg["main_activity"] + "，挂了约" + top_apps[0]["mins"])
+    return JSONResponse({
+        "empty": False, "idx": idx,
+        "since_str": _dt.datetime.fromtimestamp(seg["since"]).strftime("%H:%M"),
+        "until_str": _dt.datetime.fromtimestamp(seg["until"]).strftime("%H:%M"),
+        "main_activity": seg["main_activity"],
+        "icon": theme.ACT_ICON.get(seg["main_activity"], "apps"),
+        "color": theme.ACT_COLOR.get(seg["main_activity"], "#666666"),
+        "summary": summary,
+        "breakdown": breakdown,
+        "top_apps": top_apps,
+        "vlm_count": seg["vlm_count"],
+        "skip_count": seg["skip_count"],
+        "fallback_count": seg["fallback_count"],
+    })
