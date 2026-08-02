@@ -23,7 +23,7 @@ SECONDARY = "#b7c8e1"
 TERTIARY = "#ffd785"         # 警告琥珀
 ERROR = "#ffb4ab"
 
-# 活动类目配色（保留 7 类）
+# 活动类目配色（8 类，含学习）
 ACT_COLOR = {
     "工作": "#22c55e",      # 绿
     "学习": "#3b82f6",      # 蓝

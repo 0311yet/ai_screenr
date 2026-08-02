@@ -22,7 +22,7 @@ VLM_SCREEN_MAX_W = 1920            # 截图直送 1080P（3050 4G 跑 1.3B Q4 �
 VLM_SCREEN_JPEG_Q = 85             # 送模前 JPEG 质量
 
 # ---- 分类约束 ----
-ACTIVITY_LABELS = ["工作", "游戏", "视频", "社交", "浏览", "空闲", "其他"]
+ACTIVITY_LABELS = ["工作", "学习", "游戏", "视频", "社交", "浏览", "空闲", "其他"]
 
 # ---- 存储路径 ----
 DB_PATH = "data/ai_screenr.db"     # SQLite 路径

@@ -42,7 +42,7 @@ RESPONSE_SCHEMA = {
     "properties": {
         "activity": {
             "type": "string",
-            "enum": ["工作", "游戏", "视频", "社交", "浏览", "空闲", "其他"],
+            "enum": ["工作", "学习", "游戏", "视频", "社交", "浏览", "空闲", "其他"],
         },
         "app": {"type": "string"},
         "detail": {"type": "string"},

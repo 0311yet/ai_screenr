@@ -115,6 +115,12 @@ def _on_quit(icon, item):
     except Exception:
         pass
     icon.stop()
+    # 退出前 checkpoint SQLite WAL，避免 WAL 文件庞大及下次冷启动慢
+    try:
+        from storage import db
+        db.close()
+    except Exception:
+        log.exception("db close")
     # 给一点时间让服务退
     time.sleep(0.5)
     os._exit(0)  # ui.run 卡线程的强制收尾
