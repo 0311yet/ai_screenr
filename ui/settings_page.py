@@ -1,7 +1,7 @@
-# ai_screenr/ui/settings_page.py
-"""NiceGUI 设置页「/settings」。
+"""NiceGUI 设置页「/settings」— Stitch Deep Dark Ops 风格。
 
-设计：单张玻璃卡居中 + 背景青色/slate 光晕。节点：开机自启 toggle。
+保留：autostart.is_enabled/enable/disable 与 /settings/toggle 端点契约。
+视觉：玻璃卡居中 + 青色光晕装饰 + Stitch 风霓虹滑块。
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from ui import theme, autostart
 def settings_page():
     theme.inject()
 
-    # 顶栏：与主页一致，标题 + 返回主页按钮
+    # ── 顶栏（与主页一致：品牌 + 回主页） ──
     with ui.element("div").classes("topbar"):
         ui.html(
             '<span class="brand"><span class="brand-mark">π</span>AI SCREENR</span>', sanitize=False)
@@ -29,50 +29,65 @@ def settings_page():
     ui.html('<div class="glow-blob bg-glow-tl"></div>', sanitize=False)
     ui.html('<div class="glow-blob bg-glow-br"></div>', sanitize=False)
 
-    # ── 主卡片 ──
+    # ── 主卡片居中 ──
     with ui.element("div").style(
-        "position:relative;z-index:10;min-height:calc(100vh - 72px);"
+        "position:relative;z-index:10;min-height:calc(100vh - 64px);"
         "display:flex;align-items:center;justify-content:center;padding:24px"
     ):
         with ui.element("div").classes("glass").style(
-            "max-width:640px;width:100%;margin:auto"
+            "max-width:680px;width:100%;margin:auto"
         ):
             with ui.element("div").style(
-                "display:flex;align-items:center;gap:10px;margin-bottom:24px"
+                "display:flex;align-items:center;gap:12px;margin-bottom:28px"
             ):
                 ui.html(
                     '<span class="material-symbols-outlined" '
-                    'style="color:var(--primary);font-size:28px">tune</span>', sanitize=False)
+                    'style="color:var(--primary);font-size:32px;text-shadow:0 0 12px currentColor">'
+                    'tune</span>', sanitize=False)
                 ui.html('<div class="h1">设置</div>', sanitize=False)
+                ui.html(
+                    '<div class="caps" style="margin-left:auto;color:var(--on-surface-variant)">'
+                    'v1.0 · 离线</div>', sanitize=False)
 
-            # 开机自启
+            # 开机自启条目
             with ui.element("div").style(
                 "display:flex;align-items:center;justify-content:space-between;"
-                "padding:16px;border:1px solid rgba(60,73,76,0.3);"
-                "border-radius:8px;background:rgba(19,27,46,0.5)"
+                "padding:20px;border:1px solid rgba(60,73,76,0.4);"
+                "border-radius:var(--r-md);background:rgba(9,15,17,0.5);"
+                "border-top:1px solid rgba(138,235,255,0.18)"
             ):
                 with ui.element("div").style("flex:1;padding-right:24px"):
                     with ui.element("div").style(
-                        "display:flex;align-items:center;gap:8px;margin-bottom:4px"
+                        "display:flex;align-items:center;gap:10px;margin-bottom:6px"
                     ):
                         ui.html(
                             '<span class="material-symbols-outlined" '
-                            'style="color:var(--on-surface-variant);font-size:16px">'
+                            'style="color:var(--on-surface-variant);font-size:18px">'
                             'power_settings_new</span>', sanitize=False)
-                        ui.html(
-                            '<div class="h3">开机自启动</div>', sanitize=False)
+                        ui.html('<div class="h3">开机自启动</div>', sanitize=False)
                     ui.html(
-                        '<div class="data" style="color:var(--on-surface-variant)">'
-                        '系统启动时自动运行 AI SCREENR，确保持续的监控与活动记录。'
-                        '</div>', sanitize=False)
-                # toggle
+                        '<div class="data" style="color:var(--on-surface-variant);line-height:1.5">'
+                        '系统启动时自动运行 AI SCREENR，确保持续的监控与活动记录。<br>'
+                        '启动命令：pythonw main.py · 无窗口后台运行</div>', sanitize=False)
+                # toggle — 保留 .switch / .track / .thumb 选择器供 theme.css 作用
                 toggle = ui.html(
                     '<label class="switch"><input type="checkbox" '
                     f'{"checked" if autostart.is_enabled() else ""}>'
                     '<span class="track"></span><span class="thumb"></span></label>', sanitize=False)
-                hint = ui.html('<div class="caps" style="margin-top:10px"></div>', sanitize=False)
+                hint = ui.html('<div class="caps" style="margin-top:14px;color:var(--primary-dim);height:12px"></div>', sanitize=False)
 
-            # toggle change listener — ui.html 不允许 <script>，用 ui.add_body_html
+            # 底部说明区
+            ui.html(
+                '<div style="margin-top:24px;padding:16px;border-top:1px solid rgba(60,73,76,0.3)">'
+                '<div class="caps" style="margin-bottom:8px">关于</div>'
+                '<div class="data" style="color:var(--on-surface-variant);line-height:1.6">'
+                'AI SCREENR 是离线屏幕活动监控器，使用本地 Ollama 视觉模型 '
+                '<span style="color:var(--primary)">minicpm-v4.6</span> '
+                '每 20 秒分析屏幕一次，每 10 分钟聚合成活动段并生成日报。<br>'
+                '全程不联网、不上传任何数据。</div>'
+                '</div>', sanitize=False)
+
+            # toggle change 监听（ui.html 不允许内联 <script>，走 add_body_html）
             ui.add_body_html(
                 '''<script>
                 document.addEventListener("DOMContentLoaded", function(){
@@ -80,7 +95,7 @@ def settings_page():
                   if(el) el.addEventListener('change', function() {
                     fetch('/settings/toggle?enable=' + this.checked, {method:'POST'})
                       .then(r => r.json()).then(d => {
-                          const h = document.querySelectorAll('.glass .caps')[0];
+                          const h = document.querySelectorAll('.glass .caps')[1];
                           if(!h) return;
                           h.textContent = d.ok ? (this.checked ? '已开启' : '已关闭') : '操作失败';
                           h.style.color = d.ok ? '#8aebff' : '#ffb4ab';

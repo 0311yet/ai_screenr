@@ -1,15 +1,14 @@
-# ai_screenr/ui/app.py
-"""NiceGUI 主控台「/」：纯 Python 重建的 Sentinel 风格暗色仪表盘。
+"""NiceGUI 主控台「/」— Stitch "Deep Dark Ops" Sentinel Console 风仪表盘。
 
-区块：
-  顶栏          品牌 + 实时时钟 + 齿轮(→ /settings) + 暂停/恢复
-  24h 时间轴     144 段（24h×6/h），段高=强度%，颜色=活动类目
-  当前活动卡      旋转环 + 图标 + 活动名 + 持续分钟
-  活动构成卡     conic 环图 + 中心「总活跃 hh:mm」+ 图例列表
-  24h 强度柱图    每小时事件数%柱 + 扫描线背景
-  活动日志表     最近 30 条 events
+数据流（与原版一致，仅视觉与布局重构）：
+  - engine.get_engine() 单例仍在此页 first-load 时启动
+  - db.fetch_segments_of_day / fetch_events_in_range 直读
+  - /segment_info /generate_report /report_file FastAPI 端点保留
+  - drawer(.seg / .seg-detail) / modal(.report-btn) 的 DOM 选择器保留
+  - 5s ui.timer 全量刷新各区块
 
-数据走 storage.db 定时拉取，engine 走 engine.get_engine() 单例。
+视觉按 Stitch 生成的"Sentinel Console" 设计系统：玻璃拟态 + 霓虹青
++ CRT 扫描线 + Inter/JetBrains Mono 双字体。
 """
 from __future__ import annotations
 
@@ -20,7 +19,7 @@ from collections import Counter
 
 from nicegui import ui, app
 from fastapi import Query
-from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.responses import JSONResponse
 
 import config
 from storage import db
@@ -85,43 +84,28 @@ def _streak_minutes(events: list[dict], cur_act: str) -> int:
     return int(round(n * config.VLM_INTERVAL_SEC / 60)) or (1 if n else 0)
 
 
-# ── 渲染 helper ───────────────────────────────
-def _seg_html(idx: int, activity: str, intensity: int) -> str:
-    """返回时间轴 144 段之一的 HTML。"""
-    color = theme.ACT_COLOR.get(activity, theme.SURFACE_CONTAINER_HIGHEST)
-    # 高度用 px（避免 flex container 里 height:% 失效）
-    pct = max(10, intensity) if activity != "—" else 10
-    h_px = int(round(96 * pct / 100))
-    title = activity + " · " + str(intensity) + "%"
-    return (
-        '<div class="seg" data-idx="' + str(idx) + '" title="' + title + '" '
-        'style="height:' + str(h_px) + 'px;background:' + color + '">'
-        '<div style="position:absolute;top:0;left:0;width:100%;height:2px;'
-        'background:rgba(255,255,255,0.25);border-radius:2px 2px 0 0"></div>'
-        '</div>'
-    )
-
-
-def _conic_gradient(mix: Counter) -> str:
-    """mix -> conic-gradient(...) 字符串。"""
-    if not mix:
-        return theme.SURFACE_CONTAINER
-    total = sum(mix.values()) or 1
-    acc = 0.0
-    stops = []
-    for a, v in mix.most_common():
-        pct = v / total * 100
-        stops.append(f"{theme.ACT_COLOR.get(a, '#666')} {acc:.2f}% {acc + pct:.2f}%")
-        acc += pct
-    return "conic-gradient(" + ",".join(stops) + ")"
-
-
 def _fmt_hhmm(total_sec: int) -> str:
     h, m = divmod(int(total_sec) // 60, 60)
     return f"{h}h {m:02d}m"
 
 
-# ── 页面 ──────────────────────────────────────
+# ── 渲染 helper ───────────────────────────────
+def _seg_html(idx: int, activity: str, intensity: int) -> str:
+    """返回时间轴 144 段之一的 HTML。保留 data-idx 给 drawer 用。"""
+    color = theme.ACT_COLOR.get(activity, theme.SURFACE_HIGHEST)
+    pct = max(10, intensity) if activity != "—" else 10
+    h_px = int(round(96 * pct / 100))
+    title = activity + " · " + str(intensity) + "%"
+    return (
+        '<div class="seg" data-idx="' + str(idx) + '" title="' + title + '" '
+        'style="height:' + str(h_px) + 'px;background:' + color + ';color:' + color + '">'
+        '<div style="position:absolute;top:0;left:0;width:100%;height:2px;'
+        'background:rgba(255,255,255,0.4);border-radius:2px 2px 0 0"></div>'
+        '</div>'
+    )
+
+
+# ── 主页 ───────────────────────────────────
 @ui.page("/")
 def main_page():
     theme.inject()
@@ -147,7 +131,7 @@ def main_page():
             f'<span class="live-dot"></span>RUNTIME · --:--:--</span>', sanitize=False)
         pause_btn = ui.button("暂停", on_click=lambda: _toggle_pause()).props(
             "flat dense unelevated"
-        ).classes("btn-ghost")
+        ).classes("btn-ghost").style("font-family:'JetBrains Mono';font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px")
 
         def _toggle_pause():
             eng = get_engine()
@@ -163,58 +147,59 @@ def main_page():
         ui.button(icon="settings", on_click=lambda: ui.navigate.to("/settings")
                   ).props("flat dense unelevated").classes("act-btn")
 
-    # ── 24h 时间轴 ──
-    with ui.element("div").style("padding:0 24px 8px"):
-        with ui.element("div").classes("glass").style("margin-bottom:16px"):
-            with ui.element("div").classes("cols-x"):
+    # ── 24h 时间轴卡（占满宽） ──
+    with ui.element("div").style("padding:24px 24px 8px"):
+        with ui.element("div").classes("glass"):
+            with ui.element("div").classes("cols-x").style("margin-bottom:14px"):
                 ui.html(
                     '<div><div class="h2">24H 实时时间轴</div>'
                     '<div class="caps" style="margin-top:4px">'
-                    '个柱 = 10 分钟段 · 高 = 活动强度</div></div>', sanitize=False)
-                ui.html('<span class="chip">在线监听</span>', sanitize=False)
+                    '每个柱 = 10 分钟段 · 高 = 活动强度</div></div>', sanitize=False)
+                ui.html('<span class="chip"><span class="live-dot"></span>在线监听</span>', sanitize=False)
             timeline_html = ui.html('<div class="timeline-wrap"></div>', sanitize=False)
             ui.html(
                 '<div class="timeline-axis">'
                 + "".join(f'<span>{h:02d}</span>' for h in [0, 4, 8, 12, 16, 20, 23])
                 + '</div>', sanitize=False)
 
-    # ── 中部三卡 ──
-    with ui.element("div").classes("grid-12").style("padding:0 24px"):
+    # ── 中部三卡：当前活动 / 构成 / 强度柱图 ──
+    with ui.element("div").classes("grid-12").style("padding:8px 24px"):
         # 当前活动
-        with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
+        with ui.element("div").classes("span-4 glass"):
             ui.html('<div class="caps">当前活动</div>', sanitize=False)
-            orbit_html = ui.html('<div class="row" style="justify-content:center;margin:10px 0">'
-                    '<div class="orbit"><div class="ring"></div>'
-                    '<span class="material-symbols-outlined core" id="cur-icon">'
-                    f'{theme.ACT_ICON["—"]}</span></div></div>', sanitize=False)
+            orbit_html = ui.html(
+                '<div class="row" style="justify-content:center;margin:14px 0">'
+                '<div class="orbit"><div class="ring"></div>'
+                '<span class="material-symbols-outlined core" id="cur-icon">'
+                f'{theme.ACT_ICON["—"]}</span></div></div>', sanitize=False)
             cur_title = ui.html(
-                '<div class="h3" style="text-align:center" id="cur-title">—</div>', sanitize=False)
+                '<div class="h2" style="text-align:center" id="cur-title">—</div>', sanitize=False)
             cur_meta = ui.html(
                 '<div class="data" style="text-align:center;color:var(--on-surface-variant);'
-                'margin-top:4px" id="cur-meta">启动中</div>', sanitize=False)
+                'margin-top:6px" id="cur-meta">启动中</div>', sanitize=False)
 
         # 活动构成
-        with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
+        with ui.element("div").classes("span-4 glass"):
             ui.html('<div class="caps">今日活动构成</div>', sanitize=False)
             donut_html = ui.html(
                 '<div class="conic-donut">'
                 '<div class="hole"><div class="big" id="mix-big">0h 00m</div>'
                 '<div class="sub" id="mix-sub">总活跃</div></div></div>', sanitize=False)
-            mix_list = ui.html('<div style="margin-top:10px" id="mix-list"></div>', sanitize=False)
+            mix_list = ui.html('<div style="margin-top:14px" id="mix-list"></div>', sanitize=False)
 
         # 24h 强度柱图
-        with ui.element("div").classes("span-4 glass").style("margin-bottom:16px"):
+        with ui.element("div").classes("span-4 glass"):
             ui.html('<div class="caps">24H 活动强度</div>', sanitize=False)
             bars_html = ui.html('<div class="bars"></div>', sanitize=False)
             ui.html(
-                '<div class="timeline-axis" style="margin-top:6px">'
+                '<div class="timeline-axis" style="margin-top:8px">'
                 + "".join(f'<span>{h:02d}</span>' for h in [0, 4, 8, 12, 16, 20, 23])
                 + '</div>', sanitize=False)
 
-    # ── 活动日志 ──
-    with ui.element("div").style("padding:0 24px 24px"):
+    # ── 活动日志表（占满宽） ──
+    with ui.element("div").style("padding:8px 24px 24px"):
         with ui.element("div").classes("glass"):
-            with ui.element("div").classes("cols-x").style("margin-bottom:10px"):
+            with ui.element("div").classes("cols-x").style("margin-bottom:12px"):
                 ui.html('<div class="h3">活动日志</div>', sanitize=False)
                 log_meta = ui.html(
                     '<div class="caps" id="log-meta">'
@@ -225,7 +210,7 @@ def main_page():
                 '<th>时间戳</th><th>事件</th><th>详情</th></tr></thead>'
                 '<tbody id="log-body"></tbody></table>', sanitize=False)
 
-    # ── 刷新 ──
+    # ── 刷新循环（5s 全量重渲染，与原版保持一致） ──
     def refresh():
         now = datetime.datetime.now()
         clock.set_content(
@@ -246,7 +231,6 @@ def main_page():
         for s in segs:
             idx = int((s["since"] - today0) // 600)
             if 0 <= idx < 144:
-                # 段强度 = 该段非空闲秒数比
                 bd = json.loads(s["breakdown"] or "{}")
                 total_sec = sum(bd.values()) or 600
                 idle_sec = bd.get("空闲", 0)
@@ -264,27 +248,24 @@ def main_page():
         if cur:
             act = cur["activity"]
             icon = theme.ACT_ICON.get(act, theme.ACT_ICON["其他"])
-            color = theme.ACT_COLOR.get(act, theme.SURFACE_CONTAINER_HIGHEST)
+            color = theme.ACT_COLOR.get(act, theme.SURFACE_HIGHEST)
             mins = _streak_minutes(recent, act)
-            # 通过覆盖 orbit 块整体 set_html 重设颜色，不走 JS
             orbit_html.set_content(
-                '<div class="row" style="justify-content:center;margin:10px 0">'
+                '<div class="row" style="justify-content:center;margin:14px 0">'
                 '<div class="orbit" style="--orbit-c:' + color + '">'
                 '<div class="ring" style="border-color:' + color + ' ' + color
                 + ' ' + color + ' transparent;">'
                 '<span class="material-symbols-outlined core" '
                 'style="color:' + color + '">' + icon + '</span></div></div></div>'
             )
-            cur_title.set_content(f'<div class="h3" style="text-align:center">{act}</div>')
+            cur_title.set_content(f'<div class="h2" style="text-align:center">{act}</div>')
             cur_meta.set_content(
                 '<div class="data" style="text-align:center;'
-                'color:var(--on-surface-variant);margin-top:4px">'
-                f'已持续 {mins} 分钟 · {cur["app"]}</div>'
+                'color:var(--on-surface-variant);margin-top:6px">已持续 {} 分钟 · {}</div>'.format(mins, cur["app"] or "")
             )
 
-        # 活动构成
+        # 活动构成（conic 环图）
         mix, total = _activity_mix_today()
-        # conic gradient 直写在 style 上
         if mix:
             stops = []
             acc = 0.0
@@ -306,7 +287,7 @@ def main_page():
         )
         rows_html = "".join(
             f'<div class="mix-row"><span>'
-            f'<span class="swatch" style="background:{theme.ACT_COLOR.get(a, "#666")}"></span>'
+            f'<span class="swatch" style="background:{theme.ACT_COLOR.get(a, "#666")};color:{theme.ACT_COLOR.get(a, "#666")}"></span>'
             f'{a}</span><span>{_fmt_hhmm(v)}</span></div>'
             for a, v in mix.most_common() if v > 0
         ) or '<div class="caps" style="opacity:.6;padding:6px 0">暂无数据</div>'
@@ -341,12 +322,12 @@ def main_page():
             f'<tbody>{body or "<tr><td colspan=3 class=\"caps\" "
             "style=\"opacity:.6;padding:10px\">暂无事件</td></tr>"}</tbody></table>'
         )
-        # log-meta 重建到当前统计数（纯 set_html）
         log_meta.set_content(
             f'<span class="live-dot"></span>VLM · {state["vlm"]} 帧 · '
             f'跳过 {state["err"]}'
         )
 
+    # 注册并注入 drawer / modal（保留它们的 DOM 选择器与 JS 行为）
     from ui import _seg_detail
     _seg_detail.inject()
     from ui import _report_modal
@@ -355,26 +336,24 @@ def main_page():
     ui.timer(5.0, refresh)
     refresh()
 
-    # ── 启动单例 engine ──
+    # ── 启动单例 engine（保留原行为） ──
     try:
         get_engine(EngineCallbacks(on_event=on_event, on_status=on_status))
     except Exception:
-        # 即便 Ollama 没起，也要让页面可看
         ui.notify("后端引擎初始化失败，数据为空。请检查 Ollama。",
                   type="warning", position="top")
 
-    # 退出页面不 stop engine（单例随进程生命）
     app.on_disconnect(lambda: None)
 
 
-# ── 段详情 JSON 端点 ──────────────────────
+# ── 段详情 JSON 端点（drawer fetch 目标，契约保留） ──
 @app.get("/segment_info")
 async def _segment_info(idx: int = Query(..., ge=0, lt=144)):
     """返回指定 144 段位置的详情 JSON。点 .seg 时调用。"""
     import datetime as _dt
     now = _dt.datetime.now()
     today0 = _dt.datetime.combine(now.date(), _dt.time.min).timestamp()
-    since = today0 + idx * 600     # 10 分钟一段
+    since = today0 + idx * 600
     until = since + 600
     segs = db.fetch_segments_of_day(now.date().isoformat())
     seg = None
@@ -420,7 +399,7 @@ async def _segment_info(idx: int = Query(..., ge=0, lt=144)):
     })
 
 
-# ── 日报端点 ───────────────────
+# ── 日报端点（modal fetch 目标，契约保留） ──
 @app.post("/generate_report")
 async def _generate_report(date: str = Query(None)):
     """生成指定日期（默认今天）的日报，返回 md 文本。"""
@@ -441,7 +420,7 @@ async def _report_file(date: str = Query(...)):
     import os
     out_path = os.path.join(config.REPORT_DIR, f"{date}.md")
     if not os.path.exists(out_path):
-        daily.generate(date)  # 现场生成
+        daily.generate(date)
     with open(out_path, encoding="utf-8") as f:
         md = f.read()
     from starlette.responses import Response
