@@ -241,8 +241,8 @@ html, body {{
 
 /* ===== 24h 时间轴（144 段） ===== */
 .timeline-wrap {{
-  display:flex; align-items:flex-end; gap:2px; height:104px;
-  background:rgba(9,15,17,0.5); padding:8px;
+  display:flex; align-items:flex-end; gap:2px; height:96px;
+  background:rgba(9,15,17,0.5); padding:8px 8px 6px;
   border-radius:var(--r-md); border:1px solid rgba(60,73,76,0.3);
 }}
 .seg {{
@@ -256,7 +256,15 @@ html, body {{
   outline:1px solid var(--primary); outline-offset:2px;
   box-shadow:0 0 14px rgba(34,211,238,0.4);
 }}
-.seg-empty {{ height:10%; background:var(--surface-highest); }}
+/* 有数据段顶部高光条（0..96px 按高度比例缩放，低于 12px 时仍可见） */
+.seg-cap {{
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:rgba(255,255,255,0.4); border-radius:2px 2px 0 0;
+}}
+/* 空段：矮块、深底、无高光、不可点（退率达约 10%） */
+.seg-empty {{ height:10%; background:var(--surface-highest); cursor:default; }}
+.seg-empty:hover {{ transform:none; filter:none; box-shadow:none; cursor:default; }}
+.seg-empty.seg.active {{ transform:none; outline:none; box-shadow:none; }}
 .timeline-axis {{
   display:flex; justify-content:space-between; margin-top:var(--sp-sm);
   font-family:'JetBrains Mono'; font-size:10px; color:var(--on-surface-variant);

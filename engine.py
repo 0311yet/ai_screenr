@@ -151,14 +151,21 @@ class MonitorEngine:
     def _do_aggregate(self) -> None:
         seg_sec = config.SEGMENT_AGGREGATE_MIN * 60
         until = time.time()
-        since = until - seg_sec
+        # 对齐到本种间隔的整边界 — 让 segment.since 落在整 10min 点，
+        # 时间轴推算槽位（idx = (since-today0)//600）才不走偏。
+        until_aligned = until - (until % seg_sec)
+        since = until_aligned - seg_sec
         try:
-            rows = db.fetch_events_in_range(since, until)
+            rows = db.fetch_events_in_range(since, until_aligned)
             if not rows:
                 return
             seg = seg_mod.build(rows)
             if seg.since == 0.0 and seg.until == 0.0:
                 return
+            # aggregator 返回的 since 是 events[0].ts（偏汇起点），
+            # 写库前对齐回聚合窗起点，保证时间轴轴位稳定。
+            seg.since = since
+            seg.until = until_aligned
             db.insert_segment(seg)
             self._emit_segment(seg)
         except Exception:

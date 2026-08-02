@@ -91,17 +91,20 @@ def _fmt_hhmm(total_sec: int) -> str:
 
 # ── 渲染 helper ───────────────────────────────
 def _seg_html(idx: int, activity: str, intensity: int) -> str:
-    """返回时间轴 144 段之一的 HTML。保留 data-idx 给 drawer 用。"""
+    """返回时间轴 144 段之一的 HTML。空段走 .seg-empty（无高光，深底）。
+    有数据的段按 intensity 设高度（12..96px），并在顶部加 .seg-cap 高光条。
+    data-idx 保留给 drawer 用。
+    """
+    if activity == "—" or intensity <= 0:
+        return ('<div class="seg seg-empty" data-idx="' + str(idx)
+                + '" title="无记录"></div>')
     color = theme.ACT_COLOR.get(activity, theme.SURFACE_HIGHEST)
-    pct = max(10, intensity) if activity != "—" else 10
-    h_px = int(round(96 * pct / 100))
+    h_px = max(12, min(96, int(round(96 * intensity / 100))))
     title = activity + " · " + str(intensity) + "%"
     return (
         '<div class="seg" data-idx="' + str(idx) + '" title="' + title + '" '
         'style="height:' + str(h_px) + 'px;background:' + color + ';color:' + color + '">'
-        '<div style="position:absolute;top:0;left:0;width:100%;height:2px;'
-        'background:rgba(255,255,255,0.4);border-radius:2px 2px 0 0"></div>'
-        '</div>'
+        '<div class="seg-cap"></div></div>'
     )
 
 
@@ -224,18 +227,22 @@ def main_page():
         else:
             pause_btn.text = "暂停"
 
-        # 144 段时间轴：今日 segments（since 距凌晨分钟 / 10 = 索引）
+        # 144 段时间轴：今日 segments。原 since 可能非整 600s 边界
+        # （旧版本 events[0].ts 漂移），用 floor 把段对齐回其所属 10min 槽
         segs = db.fetch_segments_of_day(_today_str())
         today0 = datetime.datetime.combine(now.date(), datetime.time.min).timestamp()
         slots = [None] * 144   # 24h × 6 段
         for s in segs:
+            # 把稍偏的 since 归入它真正所属的 10 分钟槽（兼容旧数据）
             idx = int((s["since"] - today0) // 600)
             if 0 <= idx < 144:
                 bd = json.loads(s["breakdown"] or "{}")
                 total_sec = sum(bd.values()) or 600
                 idle_sec = bd.get("空闲", 0)
                 intensity = int((1 - idle_sec / total_sec) * 100)
-                slots[idx] = (s["main_activity"], max(20, intensity))
+                # 强度按段真实占比表达，不虚高（min 12 让弱段仍可见）
+                if slots[idx] is None or intensity > slots[idx][1]:
+                    slots[idx] = (s["main_activity"], max(12, intensity))
         tls = "".join(
             _seg_html(i, *s) if s is not None else _seg_html(i, "—", 10)
             for i, s in enumerate(slots)
@@ -358,7 +365,8 @@ async def _segment_info(idx: int = Query(..., ge=0, lt=144)):
     segs = db.fetch_segments_of_day(now.date().isoformat())
     seg = None
     for s in segs:
-        if s["since"] >= since and s["since"] < until:
+        # 与 refresh() 一致地按 floor 出槽位，避免 drawer 与时间轴错位
+        if int((s["since"] - today0) // 600) == idx:
             seg = s
             break
     if seg is None:
